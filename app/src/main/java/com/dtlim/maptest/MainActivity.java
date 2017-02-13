@@ -3,6 +3,7 @@ package com.dtlim.maptest;
 import android.Manifest;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Location;
 import android.os.Build;
 import android.support.annotation.NonNull;
@@ -25,16 +26,30 @@ import com.google.android.gms.location.LocationSettingsRequest;
 import com.google.android.gms.location.LocationSettingsResult;
 import com.google.android.gms.location.LocationSettingsStates;
 import com.google.android.gms.location.LocationSettingsStatusCodes;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.MapView;
+import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.PolylineOptions;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
     private String TAG = MainActivity.class.getName();
+    private static final String MAPVIEW_BUNDLE_KEY = "MapViewBundleKey";
 
     public static final int REQUEST_CHECK_SETTINGS = 1;
     public static final int REQUEST_LOCATION_PERMISSIONS = 2;
 
     private GoogleApiClient googleApiClient;
     private LocationRequest locationRequest;
+    private MapView mapView;
+    private GoogleMap map;
+    private boolean mapIsReady = false;
+
+    List<LatLng> points = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,6 +58,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
 
         initializeLocationRequest();
         initializeGoogleApi();
+        initializeMapView(savedInstanceState);
     }
 
     private void initializeGoogleApi() {
@@ -53,6 +69,27 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
                     .addApi(LocationServices.API)
                     .build();
         }
+    }
+
+    private void initializeMapView(Bundle savedInstanceState) {
+        mapView = (MapView) findViewById(R.id.mapview);
+        mapIsReady = false;
+        // *** IMPORTANT ***
+        // MapView requires that the Bundle you pass contain _ONLY_ MapView SDK
+        // objects or sub-Bundles.
+        Bundle mapViewBundle = null;
+        if (savedInstanceState != null) {
+            mapViewBundle = savedInstanceState.getBundle(MAPVIEW_BUNDLE_KEY);
+        }
+
+        mapView.onCreate(mapViewBundle);
+        mapView.getMapAsync(new OnMapReadyCallback() {
+            @Override
+            public void onMapReady(GoogleMap googleMap) {
+                mapIsReady = true;
+                map = googleMap;
+            }
+        });
     }
 
     private void initializeLocationRequest() {
@@ -66,12 +103,32 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
     protected void onStart() {
         googleApiClient.connect();
         super.onStart();
+        mapView.onStart();
     }
 
     @Override
     protected void onStop() {
         googleApiClient.disconnect();
         super.onStop();
+        mapView.onStop();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        mapView.onResume();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        mapView.onPause();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        mapView.onDestroy();
     }
 
     @Override
@@ -138,6 +195,12 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
                 @Override
                 public void onLocationChanged(Location location) {
                     Log.d(TAG, "onLocationChanged: " + location.getLatitude() + " " + location.getLongitude());
+                    if(!mapIsReady) {
+                        Log.d(TAG, "onLocationChanged: map not yet ready");
+                    }
+                    else {
+                        drawOnMap(location);
+                    }
                 }
             });
         }
@@ -163,6 +226,21 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
                 return;
             default:
                 super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        }
+    }
+
+    private void drawOnMap(Location location) {
+        if(map != null) {
+            Log.d(TAG, "drawOnMap: " + location.getLatitude() + " " + location.getLongitude());
+            LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
+            points.add(latLng);
+
+            PolylineOptions polylineOptions = new PolylineOptions();
+            polylineOptions.addAll(points);
+            polylineOptions.width(10);
+            polylineOptions.color(Color.RED);
+
+            map.addPolyline(polylineOptions);
         }
     }
 }
