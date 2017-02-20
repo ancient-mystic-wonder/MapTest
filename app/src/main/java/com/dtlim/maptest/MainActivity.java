@@ -26,6 +26,7 @@ import com.google.android.gms.location.LocationSettingsRequest;
 import com.google.android.gms.location.LocationSettingsResult;
 import com.google.android.gms.location.LocationSettingsStates;
 import com.google.android.gms.location.LocationSettingsStatusCodes;
+import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -135,7 +136,6 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
     public void onConnected(@Nullable Bundle bundle) {
         Log.d(TAG, "onConnected: Google API Client connected");
         doLocationSettingsChange();
-        startLocationUpdates();
     }
 
     @Override
@@ -164,6 +164,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
                 switch(status.getStatusCode()) {
                     case LocationSettingsStatusCodes.SUCCESS:
                         Log.d(TAG, "Location Settings Change success.");
+                        startLocationUpdates();
                         break;
                     case LocationSettingsStatusCodes.RESOLUTION_REQUIRED:
                         Log.d(TAG, "Location Settings Change resolution required.");
@@ -241,6 +242,8 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
             polylineOptions.color(Color.RED);
 
             map.addPolyline(polylineOptions);
+
+            map.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 20));
         }
     }
 }
