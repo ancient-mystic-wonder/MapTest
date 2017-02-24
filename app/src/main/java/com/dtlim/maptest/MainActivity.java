@@ -13,6 +13,7 @@ import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -30,7 +31,10 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
+import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
 
 import java.util.ArrayList;
@@ -51,6 +55,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
     private boolean mapIsReady = false;
 
     List<LatLng> points = new ArrayList<>();
+    private Marker locationMarker;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -192,6 +197,12 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
             }, REQUEST_LOCATION_PERMISSIONS);
         }
         else {
+            Location currentLocation = LocationServices.FusedLocationApi.getLastLocation(googleApiClient);
+            if(currentLocation != null) {
+                Log.d(TAG, "current location: " + currentLocation.getLatitude() + " " + currentLocation.getLongitude());
+                Toast.makeText(this, "current location: " + currentLocation.getLatitude() + " " + currentLocation.getLongitude(), Toast.LENGTH_SHORT).show();
+            }
+
             LocationServices.FusedLocationApi.requestLocationUpdates(googleApiClient, locationRequest, new LocationListener() {
                 @Override
                 public void onLocationChanged(Location location) {
@@ -233,6 +244,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
     private void drawOnMap(Location location) {
         if(map != null) {
             Log.d(TAG, "drawOnMap: " + location.getLatitude() + " " + location.getLongitude());
+            Toast.makeText(this, "drawOnMap: " + location.getLatitude() + " " + location.getLongitude(), Toast.LENGTH_SHORT).show();
             LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
             points.add(latLng);
 
@@ -243,7 +255,16 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
 
             map.addPolyline(polylineOptions);
 
-            map.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 20));
+            map.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 20));
+
+            if(locationMarker == null) {
+                locationMarker = map.addMarker(new MarkerOptions()
+                        .position(latLng)
+                        .draggable(false));
+            }
+            else {
+                locationMarker.setPosition(latLng);
+            }
         }
     }
 }
